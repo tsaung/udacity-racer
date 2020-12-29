@@ -83,22 +83,27 @@ async function handleCreateRace() {
   const { player_id, track_id } = store;
 
   // const race = TODO - invoke the API call to create the race, then save the result
-  const race = await createRace(player_id, track_id);
+  try {
+    const race = await createRace(player_id, track_id);
 
-  // TODO - update the store with the race id
+    // TODO - update the store with the race id
 
-  store = Object.assign(store, { race_id: race.ID });
-  // The race has been created, now start the countdown
-  // TODO - call the async function runCountdown
-  await runCountdown();
-  // TODO - call the async function startRace
-  // there was an error in blackbox REST api
-  // if you provide raceId that Go server will throw index out of range error
-  // please off by 1
-  await startRace(race.ID - 1);
+    store = Object.assign(store, { race_id: race.ID });
+    // The race has been created, now start the countdown
+    // TODO - call the async function runCountdown
+    await runCountdown();
+    // TODO - call the async function startRace
+    
+    // there was an error in blackbox REST api
+    // if you provide raceId that Go server will throw index out of range error
+    // please off by 1
+    await startRace(race.ID - 1);
 
-  // TODO - call the async function runRace
-  runRace(race.ID - 1);
+    // TODO - call the async function runRace
+    runRace(race.ID - 1);
+  } catch (e) {
+    console.error('Error createRace()', e);
+  }
 }
 
 function runRace(raceID) {
