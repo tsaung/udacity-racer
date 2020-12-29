@@ -84,7 +84,6 @@ async function handleCreateRace() {
 
   // const race = TODO - invoke the API call to create the race, then save the result
   const race = await createRace(player_id, track_id);
-  console.log(race);
 
   // TODO - update the store with the race id
 
@@ -93,9 +92,13 @@ async function handleCreateRace() {
   // TODO - call the async function runCountdown
   await runCountdown();
   // TODO - call the async function startRace
-  await startRace(race.ID);
+  // there was an error in blackbox REST api
+  // if you provide raceId that Go server will throw index out of range error
+  // please off by 1
+  await startRace(race.ID - 1);
 
   // TODO - call the async function runRace
+  runRace(race.ID - 1);
 }
 
 function runRace(raceID) {
@@ -103,9 +106,20 @@ function runRace(raceID) {
     // TODO - use Javascript's built in setInterval method to get race info every 500ms
     /* 
 		TODO - if the race info status property is "in-progress", update the leaderboard by calling:
-
 		renderAt('#leaderBoard', raceProgress(res.positions))
-	*/
+  */
+    const interval = setInterval(async () => {
+      const race = await getRace(raceID);
+      if (race.status === 'in-progress') {
+        renderAt('#leaderBoard', raceProgress(race.positions));
+      }
+
+      if (race.status === 'finished') {
+        clearInterval(interval);
+        renderAt('#race', resultsView(race.positions));
+        resolve(race);
+      }
+    }, 500);
     /* 
 		TODO - if the race info status property is "finished", run the following:
 
@@ -113,6 +127,8 @@ function runRace(raceID) {
 		renderAt('#race', resultsView(res.positions)) // to render the results view
 		reslove(res) // resolve the promise
 	*/
+  }).catch((err) => {
+    console.log('Error running race', err);
   });
   // remember to add error handling for the Promise
 }
@@ -131,7 +147,7 @@ async function runCountdown() {
         document.getElementById('big-numbers').innerHTML = --timer;
         if (!timer) {
           clearInterval(interval);
-          resolve();
+          return resolve();
         }
       }, 1000);
 
@@ -155,7 +171,7 @@ function handleSelectPodRacer(target) {
   target.classList.add('selected');
 
   // TODO - save the selected racer to the store
-  store = Object.assign(store, { player_id: target.id });
+  store = Object.assign(store, { player_id: parseInt(target.id) });
 }
 
 function handleSelectTrack(target) {
@@ -171,12 +187,13 @@ function handleSelectTrack(target) {
   target.classList.add('selected');
 
   // TODO - save the selected track id to the store
-  store = Object.assign(store, { track_id: target.id });
+  store = Object.assign(store, { track_id: parseInt(target.id) });
 }
 
 function handleAccelerate() {
   console.log('accelerate button clicked');
   // TODO - Invoke the API call to accelerate
+  accelerate(store.race_id - 1);
 }
 
 // HTML VIEWS ------------------------------------------------
@@ -364,19 +381,32 @@ function createRace(player_id, track_id) {
 
 function getRace(id) {
   // GET request to `${SERVER}/api/races/${id}`
+  return fetch(`${SERVER}/api/races/${id}`)
+    .then((res) => res.json())
+    .catch((err) => {
+      console.error('Error getting race info', err);
+    });
 }
 
 function startRace(id) {
-  return fetch(`${SERVER}/api/races/${id}/start`, {
-    method: 'POST',
-    ...defaultFetchOpts(),
-  })
-    .then((res) => res.json())
-    .catch((err) => console.log('Problem with getRace request::', err));
+  return (
+    fetch(`${SERVER}/api/races/${id}/start`, {
+      method: 'POST',
+      ...defaultFetchOpts(),
+    })
+      // .then((res) => res.json()) we don't need to parse while api response nothing
+      .catch((err) => console.log('Problem with getRace request::', err))
+  );
 }
 
 function accelerate(id) {
   // POST request to `${SERVER}/api/races/${id}/accelerate`
   // options parameter provided as defaultFetchOpts
   // no body or datatype needed for this request
+  return fetch(`${SERVER}/api/races/${id}/accelerate`, {
+    method: 'POST',
+    ...defaultFetchOpts(),
+  }).catch((err) => {
+    console.error('Error accelerate', err);
+  });
 }
