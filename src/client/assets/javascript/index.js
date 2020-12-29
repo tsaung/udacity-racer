@@ -1,7 +1,7 @@
 // PROVIDED CODE BELOW (LINES 1 - 80) DO NOT REMOVE
 
 // The store will hold all information needed globally
-var store = {
+let store = {
   track_id: undefined,
   player_id: undefined,
   race_id: undefined,
@@ -407,6 +407,6 @@ function accelerate(id) {
     method: 'POST',
     ...defaultFetchOpts(),
   }).catch((err) => {
-    console.error('Error accelerate', err);
+    console.error('Error calling accelerate function', err);
   });
 }
